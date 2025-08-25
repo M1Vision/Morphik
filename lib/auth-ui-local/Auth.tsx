@@ -27,7 +27,7 @@ export interface AuthProps {
     className?: any
     style?: any
   }
-  theme?: 'default' | 'dark'
+  theme?: 'default' | 'dark' | 'light'
   localization?: {
     variables?: any
   }

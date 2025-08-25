@@ -5,7 +5,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 interface ForgottenPasswordProps {
   supabaseClient: SupabaseClient<any, any, any>
-  setAuthView: (view: string) => void
+  setAuthView: React.Dispatch<React.SetStateAction<'sign_in' | 'sign_up' | 'forgotten_password' | 'magic_link' | 'update_password'>>
   showLinks?: boolean
   appearance?: any
   localization?: any

@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react'
 import { Search, FileText, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 
@@ -73,14 +73,14 @@ export function MorphikSearch({ className }: MorphikSearchProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Search Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="border rounded-lg bg-card">
+        <div className="p-4 border-b">
+          <h3 className="flex items-center gap-2 text-lg font-semibold">
             <Search className="h-5 w-5" />
             Morphik Semantic Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h3>
+        </div>
+        <div className="p-4 space-y-4">
           {/* Search Type Selection */}
           <div className="flex gap-2">
             <Button
@@ -135,19 +135,19 @@ export function MorphikSearch({ className }: MorphikSearchProps) {
               <span>{error}</span>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Results */}
       {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <div className="border rounded-lg bg-card">
+          <div className="p-4 border-b">
+            <h3 className="flex items-center gap-2 text-lg font-semibold">
               <FileText className="h-5 w-5" />
               Search Results ({results.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="p-4">
             <div className="space-y-4">
               {results.map((result, index) => (
                 <div key={result.id || index} className="space-y-2">
@@ -185,18 +185,18 @@ export function MorphikSearch({ className }: MorphikSearchProps) {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* No Results */}
       {!isLoading && query && results.length === 0 && !error && (
-        <Card>
-          <CardContent className="text-center py-8">
+        <div className="border rounded-lg bg-card">
+          <div className="text-center py-8">
             <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-500">No results found for &quot;{query}&quot;</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   )

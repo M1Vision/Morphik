@@ -4,7 +4,6 @@ import React, { useState, useCallback } from 'react'
 import { Search, Image as ImageIcon, Loader2, AlertCircle, ZoomIn, Download, FileText, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
@@ -158,19 +157,19 @@ export function MorphikImageGallery({
   // Load recent images on mount
   React.useEffect(() => {
     loadRecentImages()
-  }, [loadRecentImages])
+  }, [])
 
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="border rounded-lg bg-card">
+        <div className="p-4 border-b">
+          <h3 className="flex items-center gap-2 text-lg font-semibold">
             <ImageIcon className="h-5 w-5" />
             Morphik Image Gallery
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h3>
+        </div>
+        <div className="p-4 space-y-4">
           {/* Search Input */}
           <div className="flex gap-2">
             <Input
@@ -207,8 +206,8 @@ export function MorphikImageGallery({
               <span>{error}</span>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Image Grid */}
       {images.length > 0 && (
@@ -217,9 +216,9 @@ export function MorphikImageGallery({
             const imageUrl = getImageUrl(image)
             
             return (
-              <Card 
+              <div 
                 key={image.id || index} 
-                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border rounded-lg bg-card"
                 onClick={() => handleImageClick(image)}
               >
                 <div className="aspect-square relative">
@@ -252,7 +251,7 @@ export function MorphikImageGallery({
                   )}
                 </div>
                 
-                <CardContent className="p-3">
+                <div className="p-3">
                   <div className="space-y-1">
                     <p className="text-sm font-medium truncate">
                       {image.metadata?.filename || 'Untitled'}
@@ -266,8 +265,8 @@ export function MorphikImageGallery({
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>
@@ -275,14 +274,14 @@ export function MorphikImageGallery({
 
       {/* No Results */}
       {!isLoading && images.length === 0 && !error && (
-        <Card>
-          <CardContent className="text-center py-8">
+        <div className="border rounded-lg bg-card">
+          <div className="text-center py-8">
             <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-500">
               {query ? `No images found for "${query}"` : 'No images available'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Image Detail Dialog */}

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 interface EmailAuthProps {
   supabaseClient: SupabaseClient<any, any, any>
   authView: 'sign_in' | 'sign_up'
-  setAuthView: (view: string) => void
+  setAuthView: React.Dispatch<React.SetStateAction<'sign_in' | 'sign_up' | 'forgotten_password' | 'magic_link' | 'update_password'>>
   defaultEmail: string
   defaultPassword: string
   setDefaultEmail: (email: string) => void

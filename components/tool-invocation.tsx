@@ -216,13 +216,6 @@ export const ToolInvocation = memo(function ToolInvocation({
   const isImageTool = toolName.includes('image') || toolName.includes('morphik_search_images') || toolName.includes('morphik_list_images');
   const morphikImages = getMorphikImages(result);
 
-  const resourceStyle =
-    toolName == 'show_user_status'
-      ? {
-          minHeight: 695,
-        }
-      : { minHeight: 425 };
-
   const handleUiAction = useCallback(
     async (result: UIActionResult) => {
       if (append) {
@@ -261,6 +254,13 @@ export const ToolInvocation = memo(function ToolInvocation({
   );
 
   const renderedHtmlResources = useMemo(() => {
+    const resourceStyle =
+      toolName == 'show_user_status'
+        ? {
+            minHeight: 695,
+          }
+        : { minHeight: 425 };
+
     return htmlResourceContents.map((resourceData, index) => (
       <UIResourceRenderer
         key={resourceData.uri || `html-resource-${index}`}
@@ -271,7 +271,7 @@ export const ToolInvocation = memo(function ToolInvocation({
         onUIAction={handleUiAction}
       />
     ));
-  }, [htmlResourceContents, resourceStyle, handleUiAction]);
+  }, [htmlResourceContents, toolName, handleUiAction]);
 
   return (
     <div
