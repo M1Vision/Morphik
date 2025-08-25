@@ -59,7 +59,7 @@ export function ForgottenPassword({
         <div className="auth-form-header">
           <h3 className="auth-form-title">Reset your password</h3>
           <p className="auth-form-description">
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we&apos;ll send you a link to reset your password.
           </p>
         </div>
 

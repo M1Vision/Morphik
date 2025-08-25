@@ -194,7 +194,7 @@ export function EmailAuth({
                 className="text-sm text-blue-600 hover:underline"
                 onClick={() => setAuthView('sign_up')}
               >
-                Don't have an account? Sign up
+                Don&apos;t have an account? Sign up
               </button>
               <br />
               <button

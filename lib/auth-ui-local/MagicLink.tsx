@@ -63,7 +63,7 @@ export function MagicLink({
         <div className="auth-form-header">
           <h3 className="auth-form-title">Sign in with magic link</h3>
           <p className="auth-form-description">
-            Enter your email address and we'll send you a magic link to sign in.
+            Enter your email address and we&apos;ll send you a magic link to sign in.
           </p>
         </div>
 

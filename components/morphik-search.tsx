@@ -194,7 +194,7 @@ export function MorphikSearch({ className }: MorphikSearchProps) {
         <Card>
           <CardContent className="text-center py-8">
             <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">No results found for "{query}"</p>
+            <p className="text-gray-500">No results found for &quot;{query}&quot;</p>
           </CardContent>
         </Card>
       )}
