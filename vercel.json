@@ -5,11 +5,7 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "env": {
-    "MCP_AUTH_TOKEN": "@mcp-auth-token",
-    "MORPHIK_API_URL": "@morphik-api-url",
-    "MORPHIK_API_KEY": "@morphik-api-key"
-  },
+
   "functions": {
     "app/api/mcp/route.ts": {
       "maxDuration": 30
