@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getChatById, deleteChat } from "@/lib/chat-store";
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: Request, { params }: Params) {
