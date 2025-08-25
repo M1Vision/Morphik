@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Github } from 'lucide-react'
 
 interface SocialAuthProps {
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient<any, any, any>
   providers: string[]
   socialLayout: 'horizontal' | 'vertical'
   redirectTo?: string

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 interface ForgottenPasswordProps {
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient<any, any, any>
   setAuthView: (view: string) => void
   showLinks?: boolean
   appearance?: any

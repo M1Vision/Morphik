@@ -13,7 +13,7 @@ type ViewType = 'sign_in' | 'sign_up' | 'forgotten_password' | 'magic_link' | 'u
 type SocialLayout = 'horizontal' | 'vertical'
 
 export interface AuthProps {
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient<any, any, any>
   view?: ViewType
   socialLayout?: SocialLayout
   providers?: string[]

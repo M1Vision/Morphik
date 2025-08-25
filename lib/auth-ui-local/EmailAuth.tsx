@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface EmailAuthProps {
-  supabaseClient: SupabaseClient
+  supabaseClient: SupabaseClient<any, any, any>
   authView: 'sign_in' | 'sign_up'
   setAuthView: (view: string) => void
   defaultEmail: string
