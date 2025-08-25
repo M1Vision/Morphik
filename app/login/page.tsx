@@ -1,12 +1,12 @@
 'use client'
 
-import { useAuth } from "@/lib/context/auth-context"
+import { useAuth } from '@/lib/context/auth-context'
+import { useTheme } from 'next-themes'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { Auth } from '@/lib/auth-ui-local'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { createSupabaseClient } from '@/lib/supabase'
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { QuickDebug } from '@/components/quick-debug'
 
 export default function LoginPage() {
@@ -77,7 +77,7 @@ export default function LoginPage() {
                     },
                   },
                 }}
-                theme={resolvedTheme === "dark" || resolvedTheme === "black" || resolvedTheme === "sunset" || resolvedTheme === "ocean" ? "dark" : "light"}
+                theme={resolvedTheme === "dark" || resolvedTheme === "black" || resolvedTheme === "sunset" || resolvedTheme === "ocean" ? "dark" : "default"}
                 providers={['google', 'github']}
                 redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
                 onlyThirdPartyProviders={false}
