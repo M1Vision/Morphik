@@ -72,6 +72,17 @@ export function Auth({
     setConfigError(null)
   }, [supabaseClient])
 
+  // Apply theme styling - must be before conditional return
+  useEffect(() => {
+    // Apply CSS custom properties based on theme
+    const root = document.documentElement
+    const themeColors = appearance.theme?.[theme]?.colors || {}
+    
+    Object.entries(themeColors).forEach(([key, value]) => {
+      root.style.setProperty(`--auth-${key}`, value as string)
+    })
+  }, [appearance, theme])
+
   if (configError) {
     return (
       <div className="auth-container">
@@ -85,17 +96,6 @@ export function Auth({
       </div>
     )
   }
-
-  // Apply theme styling
-  useEffect(() => {
-    // Apply CSS custom properties based on theme
-    const root = document.documentElement
-    const themeColors = appearance.theme?.[theme]?.colors || {}
-    
-    Object.entries(themeColors).forEach(([key, value]) => {
-      root.style.setProperty(`--auth-${key}`, value as string)
-    })
-  }, [appearance, theme])
 
   const commonProps = {
     supabaseClient,
