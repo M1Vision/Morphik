@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { UIResourceRenderer, UIActionResult } from '@mcp-ui/client';
 import type { UseChatHelpers, Message as TMessage } from '@ai-sdk/react';
 import { nanoid } from 'nanoid';
-import { MorphikImageDisplay } from './morphik-image-display';
+// Removed MorphikImageDisplay - component deleted
 
 // Define interfaces for better type safety
 interface HtmlResourceData {
@@ -183,38 +183,7 @@ export const ToolInvocation = memo(function ToolInvocation({
     }
   };
 
-  // Check if the result contains Morphik images
-  const getMorphikImages = (result: any) => {
-    if (!result) return null;
-    
-    try {
-      // Parse result if it's a string
-      const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
-      
-      // Check for images array in various possible structures
-      if (parsedResult.images && Array.isArray(parsedResult.images)) {
-        return parsedResult.images;
-      }
-      
-      // Check if result itself is an array of images
-      if (Array.isArray(parsedResult) && parsedResult.length > 0) {
-        const firstItem = parsedResult[0];
-        if (firstItem.metadata && (
-          firstItem.metadata.mime_type?.startsWith('image/') ||
-          firstItem.metadata.filename?.match(/\.(jpg|jpeg|png|gif|bmp|svg|webp)$/i)
-        )) {
-          return parsedResult;
-        }
-      }
-      
-      return null;
-    } catch (e) {
-      return null;
-    }
-  };
-
   const isImageTool = toolName.includes('image') || toolName.includes('morphik_search_images') || toolName.includes('morphik_list_images');
-  const morphikImages = getMorphikImages(result);
 
   const handleUiAction = useCallback(
     async (result: UIActionResult) => {
@@ -342,28 +311,6 @@ export const ToolInvocation = memo(function ToolInvocation({
 
               {htmlResourceContents.length > 0 ? (
                 renderedHtmlResources
-              ) : morphikImages && morphikImages.length > 0 ? (
-                <div className="space-y-3">
-                  <MorphikImageDisplay 
-                    images={morphikImages} 
-                    compact={true}
-                    maxImages={8}
-                  />
-                  {/* Show raw data in collapsed format */}
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                      Show raw data ({morphikImages.length} images)
-                    </summary>
-                    <pre
-                      className={cn(
-                        'text-xs font-mono p-2.5 rounded-md overflow-x-auto max-h-[200px] overflow-y-auto mt-2',
-                        'border border-border/40 bg-muted/10'
-                      )}
-                    >
-                      {formatContent(result)}
-                    </pre>
-                  </details>
-                </div>
               ) : (
                 <pre
                   className={cn(
