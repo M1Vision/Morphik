@@ -1,5 +1,5 @@
 import { experimental_createMCPClient as createMCPClient } from 'ai';
-
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 export interface KeyValuePair {
   key: string;
@@ -8,10 +8,7 @@ export interface KeyValuePair {
 
 export interface MCPServerConfig {
   url: string;
-  type: 'http' | 'sse' | 'stdio';
-  command?: string;
-  args?: string[];
-  env?: KeyValuePair[];
+  type: 'sse' | 'http';
   headers?: KeyValuePair[];
 }
 
@@ -23,7 +20,7 @@ export interface MCPClientManager {
 
 /**
  * Initialize MCP clients for API calls
- * This uses the already running persistent SSE servers
+ * This uses the already running persistent HTTP or SSE servers
  */
 export async function initializeMCPClients(
   mcpServers: MCPServerConfig[] = [],
@@ -36,8 +33,22 @@ export async function initializeMCPClients(
   // Process each MCP server configuration
   for (const mcpServer of mcpServers) {
     try {
-      // Create transport based on server type
-      const transport = createTransport(mcpServer);
+      const headers = mcpServer.headers?.reduce((acc, header) => {
+        if (header.key) acc[header.key] = header.value || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const transport = mcpServer.type === 'sse'
+        ? {
+          type: 'sse' as const,
+          url: mcpServer.url,
+          headers,
+        }
+        : new StreamableHTTPClientTransport(new URL(mcpServer.url), {
+          requestInit: {
+            headers,
+          },
+        });
 
       const mcpClient = await createMCPClient({ transport });
       mcpClients.push(mcpClient);
@@ -68,43 +79,14 @@ export async function initializeMCPClients(
   };
 }
 
-/**
- * Create transport configuration based on server type
- */
-function createTransport(server: MCPServerConfig) {
-  const headers = server.headers?.reduce((acc, header) => {
-    if (header.key) acc[header.key] = header.value || '';
-    return acc;
-  }, {} as Record<string, string>);
-
-  switch (server.type) {
-    case 'http':
-      return {
-        type: 'http' as const,
-        url: server.url,
-        headers
-      };
-    case 'sse':
-      return {
-        type: 'sse' as const,
-        url: server.url,
-        headers
-      };
-    case 'stdio':
-      // stdio is handled differently in the context, this shouldn't be reached
-      throw new Error('stdio transport should be handled by the sandbox system');
-    default:
-      throw new Error(`Unsupported transport type: ${server.type}`);
-  }
-}
-
 async function cleanupMCPClients(clients: any[]): Promise<void> {
-  // Clean up the MCP clients
-  for (const client of clients) {
-    try {
-      await client.close();
-    } catch (error) {
-      console.error("Error closing MCP client:", error);
-    }
-  }
+  await Promise.all(
+    clients.map(async (client) => {
+      try {
+        await client.disconnect?.();
+      } catch (error) {
+        console.error("Error during MCP client cleanup:", error);
+      }
+    })
+  );
 } 

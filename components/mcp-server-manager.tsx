@@ -194,10 +194,7 @@ export const MCPServerManager = ({
             return;
         }
 
-        if (newServer.type === 'stdio' && (!newServer.command || !newServer.args?.length)) {
-            toast.error("Command and at least one argument are required for stdio transport");
-            return;
-        }
+
 
         const id = crypto.randomUUID();
         const updatedServers = [...servers, { ...newServer, id }];
@@ -313,10 +310,7 @@ export const MCPServerManager = ({
             toast.error("Server name is required");
             return;
         }
-        if (newServer.type === 'stdio' && (!newServer.command || !newServer.args?.length)) {
-            toast.error("Command and at least one argument are required for stdio transport");
-            return;
-        }
+
         const updated = servers.map(s =>
             s.id === editingServerId ? { ...newServer, id: editingServerId! } : s
         );
@@ -401,9 +395,7 @@ export const MCPServerManager = ({
     // Update the hover info function to return richer content
     const getServerStatusHoverInfo = (server: MCPServer): string | undefined => {
         // For connected stdio servers, show the sandbox URL as hover info
-        if (server.type === 'stdio' && server.status === 'connected' && server.sandboxUrl) {
-            return `Running at: ${server.sandboxUrl}`;
-        }
+
         
         // For error status, show the error message
         if (server.status === 'error' && server.errorMessage) {
@@ -640,17 +632,17 @@ export const MCPServerManager = ({
                                         
                                         <button
                                             type="button"
-                                            onClick={() => setNewServer({ ...newServer, type: 'stdio' })}
+                                            onClick={() => setNewServer({ ...newServer, type: 'http' })}
                                             className={`flex items-center gap-2 p-3 rounded-md text-left border transition-all ${
-                                                newServer.type === 'stdio' 
+                                                newServer.type === 'http' 
                                                     ? 'border-primary bg-primary/10 ring-1 ring-primary' 
                                                     : 'border-border hover:border-border/80 hover:bg-muted/50'
                                             }`}
                                         >
-                                            <Terminal className={`h-5 w-5 shrink-0 ${newServer.type === 'stdio' ? 'text-primary' : ''}`} />
+                                            <Globe className={`h-5 w-5 shrink-0 ${newServer.type === 'http' ? 'text-primary' : ''}`} />
                                             <div>
-                                                <p className="font-medium">stdio</p>
-                                                <p className="text-xs text-muted-foreground">Standard I/O</p>
+                                                <p className="font-medium">HTTP</p>
+                                                <p className="text-xs text-muted-foreground">Streamable HTTP</p>
                                             </div>
                                         </button>
                                     </div>
@@ -1001,7 +993,7 @@ export const MCPServerManager = ({
                                 disabled={
                                     !newServer.name ||
                                     ((newServer.type === 'http' || newServer.type === 'sse') && !newServer.url) ||
-                                    (newServer.type === 'stdio' && (!newServer.command || !newServer.args?.length))
+                                    false
                                 }
                             >
                                 {editingServerId ? "Save Changes" : "Add Server"}
