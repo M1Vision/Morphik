@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const id = chatId || nanoid();
 
   // Initialize MCP clients using the already running persistent SSE servers
-  // mcpServers now only contains SSE configurations since stdio servers
+  // mcpServers now only contains SSE and HTTP configurations
   // have been converted to SSE in the MCP context
   const { tools, cleanup } = await initializeMCPClients(mcpServers, req.signal);
 

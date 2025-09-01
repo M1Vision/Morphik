@@ -48,9 +48,7 @@ import {
 const INITIAL_NEW_SERVER: Omit<MCPServer, 'id'> = {
     name: '',
     url: '',
-    type: 'http',
-    command: 'node',
-    args: [],
+    type: 'sse',
     env: [],
     headers: []
 };
@@ -394,7 +392,7 @@ export const MCPServerManager = ({
 
     // Update the hover info function to return richer content
     const getServerStatusHoverInfo = (server: MCPServer): string | undefined => {
-        // For connected stdio servers, show the sandbox URL as hover info
+        // For error status, show the error message
 
         
         // For error status, show the error message
@@ -597,23 +595,7 @@ export const MCPServerManager = ({
                                 </Label>
                                 <div className="space-y-2">
                                     <p className="text-xs text-muted-foreground">Choose how to connect to your MCP server:</p>
-                                    <div className="grid gap-2 grid-cols-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setNewServer({ ...newServer, type: 'http' })}
-                                            className={`flex items-center gap-2 p-3 rounded-md text-left border transition-all ${
-                                                newServer.type === 'http' 
-                                                    ? 'border-primary bg-primary/10 ring-1 ring-primary' 
-                                                    : 'border-border hover:border-border/80 hover:bg-muted/50'
-                                            }`}
-                                        >
-                                            <Globe className={`h-5 w-5 shrink-0 ${newServer.type === 'http' ? 'text-primary' : ''}`} />
-                                            <div>
-                                                <p className="font-medium">HTTP</p>
-                                                <p className="text-xs text-muted-foreground">HTTP Transport</p>
-                                            </div>
-                                        </button>
-
+                                    <div className="grid gap-2 grid-cols-2">
                                         <button
                                             type="button"
                                             onClick={() => setNewServer({ ...newServer, type: 'sse' })}
@@ -623,13 +605,13 @@ export const MCPServerManager = ({
                                                     : 'border-border hover:border-border/80 hover:bg-muted/50'
                                             }`}
                                         >
-                                            <ExternalLink className={`h-5 w-5 shrink-0 ${newServer.type === 'sse' ? 'text-primary' : ''}`} />
+                                            <Globe className={`h-5 w-5 shrink-0 ${newServer.type === 'sse' ? 'text-primary' : ''}`} />
                                             <div>
                                                 <p className="font-medium">SSE</p>
                                                 <p className="text-xs text-muted-foreground">Server-Sent Events</p>
                                             </div>
                                         </button>
-                                        
+
                                         <button
                                             type="button"
                                             onClick={() => setNewServer({ ...newServer, type: 'http' })}
@@ -950,7 +932,7 @@ export const MCPServerManager = ({
                                             <p className="text-xs text-muted-foreground">
                                                 {newServer.type === 'sse'
                                                     ? 'HTTP headers will be sent with requests to the SSE endpoint.'
-                                                    : 'Additional configuration parameters for the stdio transport.'}
+                                                    : 'HTTP headers will be sent with requests to the HTTP endpoint.'}
                                             </p>
                                         </div>
                                     </AccordionContent>
