@@ -1,31 +1,30 @@
-# Morphik MCP Server Deployment on Vercel
+# Scira Frontend Deployment on Vercel
 
-This document describes how to deploy the Sica Frontend with integrated Morphik MCP server to Vercel.
+This document describes how to deploy the Scira Frontend chat interface to Vercel. The frontend connects to a separate dedicated Morphik MCP server.
 
 ## Architecture Overview
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Cursor/Claude │────│  Vercel (HTTP)   │────│  Morphik Local  │
-│   MCP Clients   │    │  MCP Server      │    │  Instance       │
+│   Cursor/Claude │────│   Dedicated      │────│  Morphik Local  │
+│   MCP Clients   │    │   MCP Server     │    │  Instance       │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-                              │
-                              ▼
+                              ▲
+                              │ (connects to)
                        ┌──────────────────┐
-                       │  Sica Frontend   │
-                       │  React Interface │
+                       │  Scira Frontend  │
+                       │  Chat Interface  │
                        └──────────────────┘
 ```
 
 ## Features
 
-✅ **Full MCP Protocol Support** - JSON-RPC 2.0 compliant  
+✅ **Pure MCP Client** - No embedded server logic  
 ✅ **HTTP & SSE Transport** - Modern transport methods  
-✅ **Morphik Integration** - Search, documents, and chunks  
-✅ **Vercel Serverless** - No containers needed  
-✅ **Authentication** - Bearer token security  
-✅ **CORS Support** - Works with Cursor and Claude  
-✅ **Auto-scaling** - Handles multiple clients  
+✅ **Multiple MCP Servers** - Connect to any MCP server  
+✅ **Vercel Deployment** - Optimized for frontend hosting  
+✅ **Modern UI/UX** - Built with Next.js and shadcn/ui  
+✅ **MCP-UI Support** - Rich tool response rendering  
 
 ## Deployment Steps
 
