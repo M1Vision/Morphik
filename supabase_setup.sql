@@ -286,3 +286,6 @@ WHERE trigger_name = 'on_auth_user_created';
 SELECT * FROM storage.buckets WHERE id IN ('avatars', 'chat-files');
 */
 
+
+
+

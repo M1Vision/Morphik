@@ -1,9 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useRef } from "react";
+import React, { createContext, useContext, useRef, useState, useEffect } from "react";
 import { useLocalStorage, useLocalStorageMcpServers } from "@/lib/hooks/use-local-storage";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { startSandbox, stopSandbox } from "@/app/actions";
+import { getUserId } from "@/lib/user-id";
 
 // Define types for MCP server
 export interface KeyValuePair {
@@ -17,7 +18,7 @@ export interface MCPServer {
   id: string;
   name: string;
   url: string;
-  type: 'sse' | 'stdio';
+  type: 'http' | 'sse' | 'stdio';
   command?: string;
   args?: string[];
   env?: KeyValuePair[];
@@ -30,7 +31,7 @@ export interface MCPServer {
 
 // Type for processed MCP server config for API
 export interface MCPServerApi {
-  type: 'sse';
+  type: 'http' | 'sse';
   url: string;
   headers?: KeyValuePair[];
 }
@@ -137,7 +138,7 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
       .map(id => getServerById(id))
       .filter((server): server is MCPServer => !!server && server.status === 'connected')
       .map(server => ({
-        type: 'sse',
+        type: server.type === 'stdio' ? 'sse' : server.type as 'http' | 'sse',
         url: server.type === 'stdio' && server.sandboxUrl ? server.sandboxUrl : server.url,
         headers: server.headers
       }));
@@ -152,8 +153,8 @@ export function MCPProvider({ children }: { children: React.ReactNode }) {
     updateServerStatus(serverId, 'connecting');
     
     try {
-      // For SSE servers, just check if the endpoint is available
-      if (server.type === 'sse') {
+      // For HTTP and SSE servers, just check if the endpoint is available
+      if (server.type === 'http' || server.type === 'sse') {
         const isReady = await waitForServerReady(server.url);
         updateServerStatus(serverId, isReady ? 'connected' : 'error', 
           isReady ? undefined : 'Could not connect to server');

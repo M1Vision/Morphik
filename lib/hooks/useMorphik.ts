@@ -172,3 +172,6 @@ export function useMorphik(config?: MorphikConfig): UseMorphikReturn {
 
 // Export types for use in components
 export type { MorphikConfig, SearchResult, MorphikResponse, SearchOptions }
+
+
+

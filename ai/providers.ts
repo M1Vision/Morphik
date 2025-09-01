@@ -21,14 +21,9 @@ const middleware = extractReasoningMiddleware({
   tagName: 'think',
 });
 
-// Helper to get API keys from environment variables first, then localStorage
+// Helper to get API keys from localStorage (client-side only)
 const getApiKey = (key: string): string | undefined => {
-  // Check for environment variables first
-  if (process.env[key]) {
-    return process.env[key] || undefined;
-  }
-  
-  // Fall back to localStorage if available
+  // Only check localStorage on client side
   if (typeof window !== 'undefined') {
     return window.localStorage.getItem(key) || undefined;
   }
@@ -36,43 +31,34 @@ const getApiKey = (key: string): string | undefined => {
   return undefined;
 };
 
-// Create provider instances with API keys from localStorage
-// const openaiClient = createOpenAI({
-//   apiKey: getApiKey('OPENAI_API_KEY'),
-// });
-
-const anthropicClient = createAnthropic({
-  apiKey: getApiKey('ANTHROPIC_API_KEY'),
-});
-
-const groqClient = createGroq({
-  apiKey: getApiKey('GROQ_API_KEY'),
-});
-
-// const xaiClient = createXai({
-//   apiKey: getApiKey('XAI_API_KEY'),
-// });
-
-const languageModels = {
-  // "gpt-4.1-mini": openaiClient("gpt-4.1-mini"),
-  "claude-4-sonnet": anthropicClient('claude-sonnet-4-20250514'),
-  "qwen-qwq": wrapLanguageModel(
-    {
+// Create provider instances only when API keys are available
+const createLanguageModels = () => {
+  const models: Record<string, any> = {};
+  
+  // Only create providers if we have valid API keys
+  const anthropicKey = getApiKey('ANTHROPIC_API_KEY');
+  if (anthropicKey) {
+    const anthropicClient = createAnthropic({
+      apiKey: anthropicKey,
+    });
+    models["claude-4-sonnet"] = anthropicClient('claude-sonnet-4-20250514');
+  }
+  
+  const groqKey = getApiKey('GROQ_API_KEY');
+  if (groqKey) {
+    const groqClient = createGroq({
+      apiKey: groqKey,
+    });
+    models["qwen-qwq"] = wrapLanguageModel({
       model: groqClient("qwen-qwq-32b"),
       middleware
-    }
-  ),
-  // "grok-3-mini": xaiClient("grok-3-mini-latest"),
+    });
+  }
+  
+  return models;
 };
 
-export const modelDetails: Record<keyof typeof languageModels, ModelInfo> = {
-  // "gpt-4.1-mini": {
-  //   provider: "OpenAI",
-  //   name: "GPT-4.1 Mini",
-  //   description: "Compact version of OpenAI's GPT-4.1 with good balance of capabilities, including vision.",
-  //   apiVersion: "gpt-4.1-mini",
-  //   capabilities: ["Balance", "Creative", "Vision"]
-  // },
+export const modelDetails: Record<string, ModelInfo> = {
   "claude-4-sonnet": {
     provider: "Anthropic",
     name: "Claude 4 Sonnet",
@@ -87,14 +73,18 @@ export const modelDetails: Record<keyof typeof languageModels, ModelInfo> = {
     apiVersion: "qwen-qwq",
     capabilities: ["Reasoning", "Efficient", "Agentic"]
   },
-  // "grok-3-mini": {
-  //   provider: "XAI",
-  //   name: "Grok 3 Mini",
-  //   description: "Latest version of XAI's Grok 3 Mini with strong reasoning and coding capabilities.",
-  //   apiVersion: "grok-3-mini-latest",
-  //   capabilities: ["Reasoning", "Efficient", "Agentic"]
-  // },
 };
+
+// Create a custom provider that dynamically creates language models
+export const model = customProvider({
+  languageModels: createLanguageModels(),
+});
+
+export type modelID = keyof typeof modelDetails;
+
+export const MODELS = Object.keys(modelDetails);
+
+export const defaultModel: modelID = "qwen-qwq";
 
 // Update API keys when localStorage changes (for runtime updates)
 if (typeof window !== 'undefined') {
@@ -106,12 +96,3 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export const model = customProvider({
-  languageModels,
-});
-
-export type modelID = keyof typeof languageModels;
-
-export const MODELS = Object.keys(languageModels);
-
-export const defaultModel: modelID = "qwen-qwq";

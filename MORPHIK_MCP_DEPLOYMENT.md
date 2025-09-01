@@ -20,6 +20,7 @@ This document describes how to deploy the Sica Frontend with integrated Morphik 
 ## Features
 
 ✅ **Full MCP Protocol Support** - JSON-RPC 2.0 compliant  
+✅ **HTTP & SSE Transport** - Modern transport methods  
 ✅ **Morphik Integration** - Search, documents, and chunks  
 ✅ **Vercel Serverless** - No containers needed  
 ✅ **Authentication** - Bearer token security  
@@ -244,3 +245,6 @@ vercel env add NODE_ENV development
 5. 🚀 Scale as needed
 
 Your Morphik MCP server is now ready for production use!
+
+
+

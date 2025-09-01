@@ -7,27 +7,20 @@ export const createSupabaseClient = () => {
   return createClientComponentClient<Database>()
 }
 
-// Get environment variables with validation
-const getSupabaseConfig = () => {
+// Browser client for client-side operations - only create when environment variables are available
+export const createBrowserSupabaseClient = () => {
+  // Check if we're in the browser and have the required environment variables
+  if (typeof window === 'undefined') {
+    throw new Error('createBrowserSupabaseClient can only be used in the browser')
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
+    throw new Error('Missing Supabase environment variables. Please check your environment configuration.')
   }
 
-  return { url, key }
+  return createClient<Database>(url, key)
 }
-
-// Browser client for client-side operations
-export const supabase = (() => {
-  try {
-    const { url, key } = getSupabaseConfig()
-    return createClient<Database>(url, key)
-  } catch (error) {
-    console.error('Failed to create Supabase client:', error)
-    // Return a mock client to prevent crashes during development
-    return createClient('https://placeholder.supabase.co', 'placeholder-key')
-  }
-})()
 

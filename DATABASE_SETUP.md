@@ -272,3 +272,6 @@ INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), 'test@example.com'
 
 This schema setup follows Supabase best practices and integrates seamlessly with the authentication system we've built.
 
+
+
+

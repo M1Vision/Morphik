@@ -124,7 +124,7 @@ export function EmailAuth({
   }
 
   return (
-    <div className="auth-email-container">
+    <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

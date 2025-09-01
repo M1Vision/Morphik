@@ -48,7 +48,7 @@ import {
 const INITIAL_NEW_SERVER: Omit<MCPServer, 'id'> = {
     name: '',
     url: '',
-    type: 'sse',
+    type: 'http',
     command: 'node',
     args: [],
     env: [],
@@ -313,10 +313,6 @@ export const MCPServerManager = ({
             toast.error("Server name is required");
             return;
         }
-        if (newServer.type === 'sse' && !newServer.url) {
-            toast.error("Server URL is required for SSE transport");
-            return;
-        }
         if (newServer.type === 'stdio' && (!newServer.command || !newServer.args?.length)) {
             toast.error("Command and at least one argument are required for stdio transport");
             return;
@@ -397,7 +393,7 @@ export const MCPServerManager = ({
     // UI element to display the correct server URL
     const getServerDisplayUrl = (server: MCPServer): string => {
         // Always show the configured URL or command, not the sandbox URL
-        return server.type === 'sse' 
+        return (server.type === 'http' || server.type === 'sse')
             ? server.url 
             : `${server.command} ${server.args?.join(' ')}`;
     };
@@ -472,8 +468,10 @@ export const MCPServerManager = ({
                                                     {/* Server Header with Type Badge and Actions */}
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div className="flex items-center gap-2">
-                                                            {server.type === 'sse' ? (
+                                                            {server.type === 'http' ? (
                                                                 <Globe className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'} flex-shrink-0`} />
+                                                            ) : server.type === 'sse' ? (
+                                                                <ExternalLink className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'} flex-shrink-0`} />
                                                             ) : (
                                                                 <Terminal className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'} flex-shrink-0`} />
                                                             )}
@@ -607,7 +605,23 @@ export const MCPServerManager = ({
                                 </Label>
                                 <div className="space-y-2">
                                     <p className="text-xs text-muted-foreground">Choose how to connect to your MCP server:</p>
-                                    <div className="grid gap-2 grid-cols-2">
+                                    <div className="grid gap-2 grid-cols-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewServer({ ...newServer, type: 'http' })}
+                                            className={`flex items-center gap-2 p-3 rounded-md text-left border transition-all ${
+                                                newServer.type === 'http' 
+                                                    ? 'border-primary bg-primary/10 ring-1 ring-primary' 
+                                                    : 'border-border hover:border-border/80 hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <Globe className={`h-5 w-5 shrink-0 ${newServer.type === 'http' ? 'text-primary' : ''}`} />
+                                            <div>
+                                                <p className="font-medium">HTTP</p>
+                                                <p className="text-xs text-muted-foreground">HTTP Transport</p>
+                                            </div>
+                                        </button>
+
                                         <button
                                             type="button"
                                             onClick={() => setNewServer({ ...newServer, type: 'sse' })}
@@ -617,7 +631,7 @@ export const MCPServerManager = ({
                                                     : 'border-border hover:border-border/80 hover:bg-muted/50'
                                             }`}
                                         >
-                                            <Globe className={`h-5 w-5 shrink-0 ${newServer.type === 'sse' ? 'text-primary' : ''}`} />
+                                            <ExternalLink className={`h-5 w-5 shrink-0 ${newServer.type === 'sse' ? 'text-primary' : ''}`} />
                                             <div>
                                                 <p className="font-medium">SSE</p>
                                                 <p className="text-xs text-muted-foreground">Server-Sent Events</p>
@@ -643,7 +657,7 @@ export const MCPServerManager = ({
                                 </div>
                             </div>
 
-                            {newServer.type === 'sse' ? (
+                            {(newServer.type === 'http' || newServer.type === 'sse') ? (
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="url">
                                         Server URL
@@ -652,11 +666,18 @@ export const MCPServerManager = ({
                                         id="url"
                                         value={newServer.url}
                                         onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
-                                        placeholder="https://mcp.example.com/token/sse"
+                                        placeholder={
+                                            newServer.type === 'http' 
+                                                ? "https://mcp.example.com/mcp" 
+                                                : "https://mcp.example.com/token/sse"
+                                        }
                                         className="relative z-0"
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Full URL to the SSE endpoint of the MCP server
+                                        {newServer.type === 'http' 
+                                            ? "Full URL to the HTTP endpoint of the MCP server"
+                                            : "Full URL to the SSE endpoint of the MCP server"
+                                        }
                                     </p>
                                 </div>
                             ) : (
@@ -979,7 +1000,7 @@ export const MCPServerManager = ({
                                 onClick={editingServerId ? updateServer : addServer}
                                 disabled={
                                     !newServer.name ||
-                                    (newServer.type === 'sse' && !newServer.url) ||
+                                    ((newServer.type === 'http' || newServer.type === 'sse') && !newServer.url) ||
                                     (newServer.type === 'stdio' && (!newServer.command || !newServer.args?.length))
                                 }
                             >

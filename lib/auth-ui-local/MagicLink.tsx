@@ -58,29 +58,29 @@ export function MagicLink({
   }
 
   return (
-    <div className="auth-widget">
-      <form onSubmit={handleMagicLink} className="auth-form">
-        <div className="auth-form-header">
-          <h3 className="auth-form-title">Sign in with magic link</h3>
-          <p className="auth-form-description">
-            Enter your email address and we&apos;ll send you a magic link to sign in.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold">Sign in with magic link</h3>
+        <p className="text-sm text-gray-600 mt-2">
+          Enter your email address and we&apos;ll send you a magic link to sign in.
+        </p>
+      </div>
 
+      <form onSubmit={handleMagicLink} className="space-y-4">
         {error && (
-          <div className="auth-message auth-message-error">
+          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="auth-message auth-message-success">
+          <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
             {message}
           </div>
         )}
 
-        <div className="auth-form-group">
-          <label htmlFor="email" className="auth-label">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
             Email address
           </label>
           <input
@@ -91,7 +91,7 @@ export function MagicLink({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="auth-input"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter your email"
           />
         </div>
@@ -99,17 +99,17 @@ export function MagicLink({
         <button
           type="submit"
           disabled={loading}
-          className="auth-button auth-button-primary"
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
         >
           {loading ? 'Sending...' : 'Send magic link'}
         </button>
 
         {showLinks && (
-          <div className="auth-form-footer">
+          <div className="text-center">
             <button
               type="button"
               onClick={() => setAuthView('sign_in')}
-              className="auth-link"
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
             >
               Back to sign in
             </button>
