@@ -50,6 +50,8 @@ export async function initializeMCPClients(
           },
         });
 
+      console.log(`Connecting to MCP server: ${mcpServer.url} using ${mcpServer.type} transport`);
+
       const mcpClient = await createMCPClient({ transport });
       mcpClients.push(mcpClient);
 
@@ -60,7 +62,7 @@ export async function initializeMCPClients(
       // Add MCP tools to tools object
       tools = { ...tools, ...mcptools };
     } catch (error) {
-      console.error("Failed to initialize MCP client:", error);
+      console.error(`Failed to initialize MCP client for ${mcpServer.url}:`, error);
       // Continue with other servers instead of failing the entire request
     }
   }
@@ -89,4 +91,4 @@ async function cleanupMCPClients(clients: any[]): Promise<void> {
       }
     })
   );
-} 
+}

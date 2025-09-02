@@ -48,8 +48,7 @@ import {
 const INITIAL_NEW_SERVER: Omit<MCPServer, 'id'> = {
     name: '',
     url: '',
-    type: 'sse',
-    env: [],
+    type: 'http',
     headers: []
 };
 
@@ -187,8 +186,8 @@ export const MCPServerManager = ({
             return;
         }
 
-        if (newServer.type === 'sse' && !newServer.url) {
-            toast.error("Server URL is required for SSE transport");
+        if ((newServer.type === 'sse' || newServer.type === 'http') && !newServer.url) {
+            toast.error("Server URL is required for SSE/HTTP transport");
             return;
         }
 
@@ -249,24 +248,11 @@ export const MCPServerManager = ({
         }
     };
 
-    const handleArgsChange = (value: string) => {
-        try {
-            // Try to parse as JSON if it starts with [ (array)
-            const argsArray = value.trim().startsWith('[')
-                ? JSON.parse(value)
-                : value.split(' ').filter(Boolean);
-
-            setNewServer({ ...newServer, args: argsArray });
-        } catch (error) {
-            // If parsing fails, just split by spaces
-            setNewServer({ ...newServer, args: value.split(' ').filter(Boolean) });
-        }
-    };
+    // Removed handleArgsChange - no longer needed for HTTP/SSE only
 
 
     const hasAdvancedConfig = (server: MCPServer) => {
-        return (server.env && server.env.length > 0) ||
-            (server.headers && server.headers.length > 0);
+        return (server.headers && server.headers.length > 0);
     };
 
     // Editing support
@@ -276,10 +262,7 @@ export const MCPServerManager = ({
             name: server.name,
             url: server.url,
             type: server.type,
-            command: server.command,
-            args: server.args,
-            env: server.env,
-            headers: server.headers
+            headers: server.headers || []
         });
         setView('add');
         // Reset sensitive value visibility states
@@ -385,9 +368,7 @@ export const MCPServerManager = ({
     // UI element to display the correct server URL
     const getServerDisplayUrl = (server: MCPServer): string => {
         // Always show the configured URL or command, not the sandbox URL
-        return (server.type === 'http' || server.type === 'sse')
-            ? server.url 
-            : `${server.command} ${server.args?.join(' ')}`;
+        return server.url;
     };
 
     // Update the hover info function to return richer content
@@ -631,63 +612,28 @@ export const MCPServerManager = ({
                                 </div>
                             </div>
 
-                            {(newServer.type === 'http' || newServer.type === 'sse') ? (
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="url">
-                                        Server URL
-                                    </Label>
-                                    <Input
-                                        id="url"
-                                        value={newServer.url}
-                                        onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
-                                        placeholder={
-                                            newServer.type === 'http' 
-                                                ? "https://mcp.example.com/mcp" 
-                                                : "https://mcp.example.com/token/sse"
-                                        }
-                                        className="relative z-0"
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        {newServer.type === 'http' 
-                                            ? "Full URL to the HTTP endpoint of the MCP server"
-                                            : "Full URL to the SSE endpoint of the MCP server"
-                                        }
-                                    </p>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="command">
-                                            Command
-                                        </Label>
-                                        <Input
-                                            id="command"
-                                            value={newServer.command}
-                                            onChange={(e) => setNewServer({ ...newServer, command: e.target.value })}
-                                            placeholder="node"
-                                            className="relative z-0"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Executable to run (e.g., node, python)
-                                        </p>
-                                    </div>
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="args">
-                                            Arguments
-                                        </Label>
-                                        <Input
-                                            id="args"
-                                            value={newServer.args?.join(' ') || ''}
-                                            onChange={(e) => handleArgsChange(e.target.value)}
-                                            placeholder="src/mcp-server.js --port 3001"
-                                            className="relative z-0"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Space-separated arguments or JSON array
-                                        </p>
-                                    </div>
-                                </>
-                            )}
+                            <div className="grid gap-1.5">
+                                <Label htmlFor="url">
+                                    Server URL
+                                </Label>
+                                <Input
+                                    id="url"
+                                    value={newServer.url}
+                                    onChange={(e) => setNewServer({ ...newServer, url: e.target.value })}
+                                    placeholder={
+                                        newServer.type === 'http' 
+                                            ? "https://mcp.example.com/mcp" 
+                                            : "https://mcp.example.com/token/sse"
+                                    }
+                                    className="relative z-0"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    {newServer.type === 'http' 
+                                        ? "Full URL to the HTTP endpoint of the MCP server"
+                                        : "Full URL to the SSE endpoint of the MCP server"
+                                    }
+                                </p>
+                            </div>
 
                             {/* Advanced Configuration */}
                             <Accordion type="single" collapsible className="w-full">

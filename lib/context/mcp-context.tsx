@@ -31,9 +31,6 @@ export interface MCPServer {
   name: string;
   url: string;
   type: "sse" | "http";
-  command?: string;
-  args?: string[];
-  env?: KeyValuePair[];
   headers?: KeyValuePair[];
   description?: string;
   status?: ServerStatus;
