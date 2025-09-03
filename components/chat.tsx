@@ -1,7 +1,8 @@
 "use client";
 
-import { defaultModel, type modelID } from "@/ai/providers";
+import { defaultModel, MODELS, type modelID } from "@/ai/providers";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Textarea } from "./textarea";
 import { ProjectOverview } from "./project-overview";
@@ -114,32 +115,22 @@ export default function Chat() {
     return [];
   }, []);
   
-  // Use useChat with custom fetch function to dynamically pass headers
+  // Use useChat with DefaultChatTransport for proper reasoning support (AI SDK v5 standard)
   const { messages, status, sendMessage, stop, append } = useChat({
-    api: '/api/chat',
     id: chatId || generatedChatId,
     initialMessages,
-    fetch: async (url, options) => {
-      // Custom fetch function that adds dynamic headers
-      const headers = {
-        ...options?.headers,
-        'x-user-id': userId,
-        'x-selected-model': selectedModel,
-        'x-chat-id': chatId || generatedChatId,
-      };
-      
-      console.log('Custom fetch - sending headers:', headers);
-      console.log('Custom fetch - userId value:', userId);
-      
-      return fetch(url, {
-        ...options,
-        headers,
-        body: JSON.stringify({
-          ...JSON.parse(options?.body as string || '{}'),
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      prepareSendMessagesRequest: ({ messages }) => ({
+        body: {
+          messages,
+          userId,
+          selectedModel,
+          chatId: chatId || generatedChatId,
           mcpServers: mcpServersForApi,
-        }),
-      });
-    },
+        },
+      }),
+    }),
     onFinish: () => {
       // Invalidate the chats query to refresh the sidebar
       if (userId) {
@@ -171,6 +162,34 @@ export default function Chat() {
     isUserIdReady,
     authLoading: loading,
     authenticatedUser: user?.id
+  });
+  
+  // Debug message parts to see if reasoning is being received
+  console.log('Message parts debug:', messages.map(m => ({
+    id: m.id,
+    role: m.role,
+    parts: m.parts?.map(p => ({ 
+      type: p.type, 
+      hasText: !!(p as any).text, 
+      hasReasoning: !!(p as any).reasoning,
+      fullPart: p  // Log the full part to see what we're actually getting
+    }))
+  })));
+  
+  // Log the latest assistant message parts in detail
+  const latestAssistantMessage = messages.filter(m => m.role === 'assistant').pop();
+  if (latestAssistantMessage) {
+    console.log('Latest assistant message parts:', latestAssistantMessage.parts);
+  }
+  
+  console.log('Selected model for body:', selectedModel);
+  console.log('Default model from providers:', defaultModel);
+  console.log('Available models:', MODELS);
+  console.log('Body data being sent:', {
+    userId,
+    selectedModel,
+    chatId: chatId || generatedChatId,
+    mcpServersCount: mcpServersForApi?.length
   });
   
   console.log('useChat config - API endpoint: /api/chat');

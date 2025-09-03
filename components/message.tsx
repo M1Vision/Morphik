@@ -13,8 +13,9 @@ import { CopyButton } from "./copy-button";
 
 interface ReasoningPart {
   type: "reasoning";
-  reasoning: string;
-  details: Array<{ type: "text"; text: string }>;
+  text: string;  // This is the standard format from AI SDK
+  reasoning?: string;  // Keep for backward compatibility
+  details?: Array<{ type: "text"; text: string }>;  // Keep for backward compatibility
 }
 
 interface ReasoningMessagePartProps {
@@ -102,9 +103,14 @@ export function ReasoningMessagePart({
           <div className="text-xs text-muted-foreground/70 pl-1 font-medium">
             The assistant&apos;s thought process:
           </div>
-          {part.details.map((detail, detailIndex) =>
+          {/* Display reasoning text from AI SDK standard format */}
+          <div className="px-2 py-1.5 bg-muted/10 rounded-md border border-border/30">
+            <Markdown>{part.text || part.reasoning || ""}</Markdown>
+          </div>
+          {/* Also display details if they exist (for backward compatibility) */}
+          {part.details?.map((detail, detailIndex) =>
             detail.type === "text" ? (
-              <div key={detailIndex} className="px-2 py-1.5 bg-muted/10 rounded-md border border-border/30">
+              <div key={detailIndex} className="px-2 py-1.5 bg-muted/10 rounded-md border border-border/30 mt-2">
                 <Markdown>{detail.text}</Markdown>
               </div>
             ) : (

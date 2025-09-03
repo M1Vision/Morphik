@@ -1,7 +1,7 @@
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { groq } from "@ai-sdk/groq";
-import { xai } from "@ai-sdk/xai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGroq } from "@ai-sdk/groq";
+import { createXai } from "@ai-sdk/xai";
 
 import {
   wrapLanguageModel,
@@ -20,40 +20,74 @@ const middleware = extractReasoningMiddleware({
   tagName: 'think',
 });
 
+// Helper to get API keys from environment variables first, then localStorage
+const getApiKey = (key: string): string | undefined => {
+  // Check for environment variables first
+  if (process.env[key]) {
+    return process.env[key] || undefined;
+  }
+
+  // Fall back to localStorage if available
+  if (typeof window !== 'undefined') {
+    return window.localStorage.getItem(key) || undefined;
+  }
+
+  return undefined;
+};
+
+// Create provider instances with API key handling
+const openaiClient = createOpenAI({
+  apiKey: getApiKey('OPENAI_API_KEY'),
+});
+
+const anthropicClient = createAnthropic({
+  apiKey: getApiKey('ANTHROPIC_API_KEY'),
+});
+
+const groqClient = createGroq({
+  apiKey: getApiKey('GROQ_API_KEY'),
+});
+
+const xaiClient = createXai({
+  apiKey: getApiKey('XAI_API_KEY'),
+});
+
 // Function to get a language model by ID - following the official AI SDK v5 pattern
 export const getLanguageModel = (modelId: string) => {
   switch (modelId) {
     // OpenAI Models
     case "gpt-4o":
       return wrapLanguageModel({
-        model: openai("gpt-4o"),
+        model: openaiClient("gpt-4o"),
         middleware
       });
     case "gpt-4o-mini":
       return wrapLanguageModel({
-        model: openai("gpt-4o-mini"),
+        model: openaiClient("gpt-4o-mini"),
         middleware
       });
 
     // Anthropic Models
     case "claude-3-5-sonnet":
-      return anthropic("claude-3-5-sonnet-20240620");
+      // claude-3-5-sonnet doesn't support thinking mode, so don't wrap it
+      return anthropicClient("claude-3-5-sonnet-20240620");
     case "claude-4-sonnet":
+      // Claude 3.7 Sonnet with thinking mode (official model name from Vercel docs)
       return wrapLanguageModel({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: anthropicClient('claude-3-7-sonnet-20250219'),
         middleware
       });
 
     // Groq Models
     case "qwen-qwq":
       return wrapLanguageModel({
-        model: groq("qwen-qwq-32b"),
+        model: groqClient("qwen-qwq-32b"),
         middleware
       });
 
     // XAI Models
     case "grok-3-mini":
-      return xai("grok-3-mini-latest");
+      return xaiClient("grok-3-mini-latest");
 
     default:
       throw new Error(`Unknown model: ${modelId}`);
@@ -87,9 +121,9 @@ export const modelDetails: Record<string, ModelInfo> = {
   },
   "claude-4-sonnet": {
     provider: "Anthropic",
-    name: "Claude 4 Sonnet",
-    description: "Latest version of Anthropic's Claude 4 Sonnet with thinking mode and strong reasoning capabilities.",
-    apiVersion: "claude-sonnet-4-20250514",
+    name: "Claude 3.7 Sonnet",
+    description: "Most intelligent model with extended thinking",
+    apiVersion: "claude-3-7-sonnet-20250219",
     capabilities: ["Thinking", "Reasoning", "Efficient", "Agentic"]
   },
 
@@ -116,4 +150,4 @@ export type modelID = keyof typeof modelDetails;
 
 export const MODELS = Object.keys(modelDetails);
 
-export const defaultModel: modelID = "claude-3-5-sonnet";
+export const defaultModel: modelID = "claude-4-sonnet";

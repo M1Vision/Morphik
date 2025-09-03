@@ -1,8 +1,13 @@
 import { getLanguageModel, type modelID } from '@/ai/providers';
 import { smoothStream, streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { nanoid } from 'nanoid';
 import { initializeMCPClients, type MCPServerConfig } from '@/lib/mcp-client';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { saveChat, convertToDBMessages } from '@/lib/chat-store';
+import { db } from '@/lib/db';
+import { chats } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 
@@ -23,77 +28,85 @@ export async function POST(req: Request) {
   });
   console.log('========================');
   
-  // AI SDK v5 standard format: messages in body, additional data from headers
-  const { messages, mcpServers = [] }: {
+  // AI SDK v5 standard format: messages and data in body
+  const { 
+    messages, 
+    mcpServers = [], 
+    userId: bodyUserId, 
+    selectedModel: bodySelectedModel, 
+    chatId: bodyChatId 
+  }: {
     messages: UIMessage[];
     mcpServers?: MCPServerConfig[];
+    userId?: string;
+    selectedModel?: string;
+    chatId?: string;
   } = requestBody;
   
-  // Get user from Supabase session (more reliable than headers)
+  // Get user from Supabase session (more reliable than body)
   const supabase = createSupabaseServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   
-  // Fallback to headers if Supabase auth fails
-  const headerUserId = req.headers.get('x-user-id');
-  const selectedModel = req.headers.get('x-selected-model');
-  const chatId = req.headers.get('x-chat-id');
-  
-  const userId = user?.id || headerUserId;
+  // Use authenticated user ID, fallback to body userId
+  const userId = user?.id || bodyUserId;
+  const selectedModel = bodySelectedModel;
+  const chatId = bodyChatId;
 
   if (!userId) {
-    console.error('Authentication failed:', { authError, headerUserId, user: user?.id });
+    console.error('Authentication failed:', { authError, bodyUserId, user: user?.id });
     return new Response(JSON.stringify({ error: 'User ID is required - please sign in' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
   }
   
-  console.log('User authenticated:', { userId: user?.id, fallbackUserId: headerUserId, finalUserId: userId });
+  console.log('User authenticated:', { userId: user?.id, fallbackUserId: bodyUserId, finalUserId: userId });
 
   const id = chatId || nanoid();
+
+  // Check if this is a new chat and create it in the database
+  if (id && userId) {
+    try {
+      // Check if chat already exists for the given ID
+      const existingChat = await db.query.chats.findFirst({
+        where: and(eq(chats.id, id), eq(chats.userId, userId)),
+      });
+
+      if (!existingChat) {
+        // This is a new chat, save it immediately so it appears in the sidebar
+        await saveChat({
+          id,
+          userId,
+          title: "New Chat",
+          messages: [],
+        });
+        console.log('Created new chat:', id);
+      }
+    } catch (error) {
+      console.error("Error checking/creating new chat:", error);
+    }
+  }
 
   // Initialize MCP clients using the already running persistent SSE servers
   // mcpServers now only contains SSE and HTTP configurations
   // have been converted to SSE in the MCP context
   const { tools, cleanup } = await initializeMCPClients(mcpServers, req.signal);
 
+  // Only enable thinking for models that support it
+  const supportsThinking = selectedModel === "claude-4-sonnet";
+  
+  // Use the getLanguageModel function to properly handle reasoning middleware
+  const modelInstance = getLanguageModel(selectedModel || "claude-4-sonnet");
+
   console.log('messages', messages);
   console.log('parts', messages.map(m => m.parts?.map ? m.parts.map(p => p) : []));
+  console.log('Selected model:', selectedModel);
+  console.log('Supports thinking:', supportsThinking);
+  console.log('Model instance:', typeof modelInstance);
 
   // Track if the response has completed
   let responseCompleted = false;
-
-  // Use direct model access to avoid any middleware issues
-  let modelInstance;
-  switch (selectedModel) {
-    case "claude-3-5-sonnet":
-      const { anthropic } = await import('@ai-sdk/anthropic');
-      modelInstance = anthropic("claude-3-5-sonnet-20240620");
-      break;
-    case "claude-4-sonnet":
-      const { anthropic: anthropic2 } = await import('@ai-sdk/anthropic');
-      modelInstance = anthropic2('claude-sonnet-4-20250514');
-      break;
-    case "gpt-4o":
-      const { openai } = await import('@ai-sdk/openai');
-      modelInstance = openai("gpt-4o");
-      break;
-    case "gpt-4o-mini":
-      const { openai: openai2 } = await import('@ai-sdk/openai');
-      modelInstance = openai2("gpt-4o-mini");
-      break;
-    case "qwen-qwq":
-      const { groq } = await import('@ai-sdk/groq');
-      modelInstance = groq("qwen-qwq-32b");
-      break;
-    case "grok-3-mini":
-      const { xai } = await import('@ai-sdk/xai');
-      modelInstance = xai("grok-3-mini-latest");
-      break;
-    default:
-      modelInstance = getLanguageModel(selectedModel || "claude-3-5-sonnet");
-  }
-
+  
   const result = streamText({
     model: modelInstance,
     system: `You are a helpful assistant with access to a variety of tools.
@@ -105,9 +118,12 @@ export async function POST(req: Request) {
 
     If tools are not available, say you don't know or if the user wants a tool they can add one from the server icon in bottom left corner in the sidebar.
 
+    You can use multiple tools in a single response.
     Always respond after using the tools for better user experience.
+    You can run multiple steps using all the tools!!!!
     Make sure to use the right tool to respond to the user's question.
-    Use only one tool at a time. If you need to use multiple tools, use the tool that is most relevant to the user's question.
+
+    Multiple tools can be used in a single response and multiple steps can be used to answer the user's question.
 
     ## Response Format
     - Markdown is supported.
@@ -118,11 +134,9 @@ export async function POST(req: Request) {
     messages: convertToModelMessages(messages),
     tools,
     providerOptions: {
-      google: {
-        thinkingConfig: {
-          thinkingBudget: 2048,
-        },
-      },
+      anthropic: {
+        thinking: { type: 'enabled', budgetTokens: 12000 },
+      } satisfies AnthropicProviderOptions,
     },
     experimental_transform: smoothStream({
       delayInMs: 5, // optional: defaults to 10ms
@@ -131,8 +145,18 @@ export async function POST(req: Request) {
     onError: (error) => {
       console.error(JSON.stringify(error, null, 2));
     },
-    async onFinish() {
+    onStepFinish: ({ text, reasoning, toolCalls, toolResults }) => {
+      console.log('Step finished:', { hasText: !!text, hasReasoning: !!reasoning, toolCallsCount: toolCalls?.length });
+      if (reasoning && Array.isArray(reasoning)) {
+        console.log('Reasoning generated:', reasoning.length + ' reasoning parts');
+      }
+    },
+    async onFinish({ text, reasoning, toolCalls, toolResults, usage }) {
       responseCompleted = true;
+      console.log('Final response:', { hasText: !!text, hasReasoning: !!reasoning, toolCallsCount: toolCalls?.length });
+      if (reasoning && Array.isArray(reasoning)) {
+        console.log('Final reasoning parts:', reasoning.length);
+      }
 
       // Clean up resources - now this just closes the client connections
       // not the actual servers which persist in the MCP context
@@ -152,10 +176,25 @@ export async function POST(req: Request) {
     }
   });
 
-  // Return the streaming response using the AI SDK v5 method
+  // Return the streaming response using the AI SDK v5 method with proper persistence
   return result.toUIMessageStreamResponse({
+    originalMessages: messages, // Critical: Pass original messages for conversation continuity
+    sendReasoning: true,
     headers: {
       'X-Chat-ID': id,
+    },
+    onFinish: async ({ messages: finalMessages }) => {
+      // Save conversation to database after completion (AI SDK v5 way)
+      try {
+        await saveChat({
+          id,
+          userId,
+          messages: finalMessages,
+        });
+        console.log('Chat saved to database:', id);
+      } catch (error) {
+        console.error('Error saving chat to database:', error);
+      }
     },
   });
 }
