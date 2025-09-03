@@ -1,8 +1,8 @@
-import { model, type modelID } from '@/ai/providers';
-import { smoothStream, streamText, type UIMessage } from 'ai';
-import { appendResponseMessages } from 'ai';
+import { getLanguageModel, type modelID } from '@/ai/providers';
+import { smoothStream, streamText, convertToModelMessages, type UIMessage } from 'ai';
 import { nanoid } from 'nanoid';
 import { initializeMCPClients, type MCPServerConfig } from '@/lib/mcp-client';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
 
@@ -12,26 +12,43 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    chatId,
-    selectedModel,
-    userId,
-    mcpServers = [],
-  }: {
+  const requestBody = await req.json();
+  
+  console.log('=== CHAT API REQUEST ===');
+  console.log('Full request body:', JSON.stringify(requestBody, null, 2));
+  console.log('Headers:', {
+    'x-user-id': req.headers.get('x-user-id'),
+    'x-selected-model': req.headers.get('x-selected-model'),
+    'x-chat-id': req.headers.get('x-chat-id'),
+  });
+  console.log('========================');
+  
+  // AI SDK v5 standard format: messages in body, additional data from headers
+  const { messages, mcpServers = [] }: {
     messages: UIMessage[];
-    chatId?: string;
-    selectedModel: modelID;
-    userId: string;
     mcpServers?: MCPServerConfig[];
-  } = await req.json();
+  } = requestBody;
+  
+  // Get user from Supabase session (more reliable than headers)
+  const supabase = createSupabaseServerClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  // Fallback to headers if Supabase auth fails
+  const headerUserId = req.headers.get('x-user-id');
+  const selectedModel = req.headers.get('x-selected-model');
+  const chatId = req.headers.get('x-chat-id');
+  
+  const userId = user?.id || headerUserId;
 
   if (!userId) {
-    return new Response(JSON.stringify({ error: 'User ID is required' }), {
-      status: 400,
+    console.error('Authentication failed:', { authError, headerUserId, user: user?.id });
+    return new Response(JSON.stringify({ error: 'User ID is required - please sign in' }), {
+      status: 401,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+  
+  console.log('User authenticated:', { userId: user?.id, fallbackUserId: headerUserId, finalUserId: userId });
 
   const id = chatId || nanoid();
 
@@ -41,16 +58,44 @@ export async function POST(req: Request) {
   const { tools, cleanup } = await initializeMCPClients(mcpServers, req.signal);
 
   console.log('messages', messages);
-  console.log(
-    'parts',
-    messages.map((m) => m.parts.map((p) => p))
-  );
+  console.log('parts', messages.map(m => m.parts?.map ? m.parts.map(p => p) : []));
 
   // Track if the response has completed
   let responseCompleted = false;
 
+  // Use direct model access to avoid any middleware issues
+  let modelInstance;
+  switch (selectedModel) {
+    case "claude-3-5-sonnet":
+      const { anthropic } = await import('@ai-sdk/anthropic');
+      modelInstance = anthropic("claude-3-5-sonnet-20240620");
+      break;
+    case "claude-4-sonnet":
+      const { anthropic: anthropic2 } = await import('@ai-sdk/anthropic');
+      modelInstance = anthropic2('claude-sonnet-4-20250514');
+      break;
+    case "gpt-4o":
+      const { openai } = await import('@ai-sdk/openai');
+      modelInstance = openai("gpt-4o");
+      break;
+    case "gpt-4o-mini":
+      const { openai: openai2 } = await import('@ai-sdk/openai');
+      modelInstance = openai2("gpt-4o-mini");
+      break;
+    case "qwen-qwq":
+      const { groq } = await import('@ai-sdk/groq');
+      modelInstance = groq("qwen-qwq-32b");
+      break;
+    case "grok-3-mini":
+      const { xai } = await import('@ai-sdk/xai');
+      modelInstance = xai("grok-3-mini-latest");
+      break;
+    default:
+      modelInstance = getLanguageModel(selectedModel || "claude-3-5-sonnet");
+  }
+
   const result = streamText({
-    model: model.languageModel(selectedModel),
+    model: modelInstance,
     system: `You are a helpful assistant with access to a variety of tools.
 
     Today's date is ${new Date().toISOString().split('T')[0]}.
@@ -70,19 +115,12 @@ export async function POST(req: Request) {
     - Use the tools to answer the user's question.
     - If you don't know the answer, use the tools to find the answer or say you don't know.
     `,
-    messages,
+    messages: convertToModelMessages(messages),
     tools,
-    maxSteps: 20,
     providerOptions: {
       google: {
         thinkingConfig: {
           thinkingBudget: 2048,
-        },
-      },
-      anthropic: {
-        thinking: {
-          type: 'enabled',
-          budgetTokens: 12000,
         },
       },
     },
@@ -114,21 +152,10 @@ export async function POST(req: Request) {
     }
   });
 
-  result.consumeStream();
-  // Add chat ID to response headers so client can know which chat was created
-  return result.toDataStreamResponse({
-    sendReasoning: true,
+  // Return the streaming response using the AI SDK v5 method
+  return result.toUIMessageStreamResponse({
     headers: {
       'X-Chat-ID': id,
-    },
-    getErrorMessage: (error) => {
-      if (error instanceof Error) {
-        if (error.message.includes('Rate limit')) {
-          return 'Rate limit exceeded. Please try again later.';
-        }
-      }
-      console.error(error);
-      return 'An error occurred.';
     },
   });
 }

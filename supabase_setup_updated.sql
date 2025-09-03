@@ -287,3 +287,5 @@ CREATE POLICY "Users can upload their own chat files" ON storage.objects
 
 -- Return success message
 SELECT 'Updated database setup complete - Compatible with Drizzle schema' AS status;
+
+

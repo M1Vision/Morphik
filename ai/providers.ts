@@ -1,10 +1,9 @@
-import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGroq } from "@ai-sdk/groq";
-import { createXai } from "@ai-sdk/xai";
+import { openai } from "@ai-sdk/openai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { groq } from "@ai-sdk/groq";
+import { xai } from "@ai-sdk/xai";
 
 import {
-  customProvider,
   wrapLanguageModel,
   extractReasoningMiddleware
 } from "ai";
@@ -21,70 +20,48 @@ const middleware = extractReasoningMiddleware({
   tagName: 'think',
 });
 
-// Helper to get API keys from environment variables first, then localStorage
-const getApiKey = (key: string): string | undefined => {
-  // Check for environment variables first
-  if (process.env[key]) {
-    return process.env[key] || undefined;
-  }
+// Function to get a language model by ID - following the official AI SDK v5 pattern
+export const getLanguageModel = (modelId: string) => {
+  switch (modelId) {
+    // OpenAI Models
+    case "gpt-4o":
+      return wrapLanguageModel({
+        model: openai("gpt-4o"),
+        middleware
+      });
+    case "gpt-4o-mini":
+      return wrapLanguageModel({
+        model: openai("gpt-4o-mini"),
+        middleware
+      });
 
-  // Fall back to localStorage if available
-  if (typeof window !== 'undefined') {
-    return window.localStorage.getItem(key) || undefined;
-  }
+    // Anthropic Models
+    case "claude-3-5-sonnet":
+      return anthropic("claude-3-5-sonnet-20240620");
+    case "claude-4-sonnet":
+      return wrapLanguageModel({
+        model: anthropic('claude-sonnet-4-20250514'),
+        middleware
+      });
 
-  return undefined;
+    // Groq Models
+    case "qwen-qwq":
+      return wrapLanguageModel({
+        model: groq("qwen-qwq-32b"),
+        middleware
+      });
+
+    // XAI Models
+    case "grok-3-mini":
+      return xai("grok-3-mini-latest");
+
+    default:
+      throw new Error(`Unknown model: ${modelId}`);
+  }
 };
 
-const openaiClient = createOpenAI({
-  apiKey: getApiKey('OPENAI_API_KEY'),
-});
-
-const anthropicClient = createAnthropic({
-  apiKey: getApiKey('ANTHROPIC_API_KEY'),
-});
-
-const groqClient = createGroq({
-  apiKey: getApiKey('GROQ_API_KEY'),
-});
-
-const xaiClient = createXai({
-  apiKey: getApiKey('XAI_API_KEY'),
-});
-
-const languageModels = {
+export const modelDetails: Record<string, ModelInfo> = {
   // OpenAI Models
-  "gpt-4o": wrapLanguageModel({
-    model: openaiClient("gpt-4o"),
-    middleware
-  }),
-  "gpt-4o-mini": wrapLanguageModel({
-    model: openaiClient("gpt-4o-mini"),
-    middleware
-  }),
-
-  // Anthropic Models
-  "claude-3-5-sonnet": wrapLanguageModel({
-    model: anthropicClient("claude-3-5-sonnet-20240620"),
-    middleware
-  }),
-
-  // Groq Models (from original scira-mcp-chat)
-  "qwen3-32b": wrapLanguageModel(
-    {
-      model: groqClient('qwen/qwen3-32b'),
-      middleware
-    }
-  ),
-  "kimi-k2": groqClient('moonshotai/kimi-k2-instruct'),
-  "llama4": groqClient('meta-llama/llama-4-scout-17b-16e-instruct'),
-
-  // XAI Models (from original scira-mcp-chat)
-  "grok-3-mini": xaiClient("grok-3-mini-latest"),
-};
-
-export const modelDetails: Record<keyof typeof languageModels, ModelInfo> = {
-  // OpenAI
   "gpt-4o": {
     provider: "OpenAI",
     name: "GPT-4o",
@@ -93,14 +70,14 @@ export const modelDetails: Record<keyof typeof languageModels, ModelInfo> = {
     capabilities: ["Vision", "Reasoning", "Code", "Function Calling"]
   },
   "gpt-4o-mini": {
-    provider: "OpenAI",
+    provider: "OpenAI", 
     name: "GPT-4o Mini",
     description: "Faster and more efficient version of GPT-4o.",
     apiVersion: "gpt-4o-mini",
     capabilities: ["Fast", "Efficient", "Function Calling"]
   },
 
-  // Anthropic
+  // Anthropic Models
   "claude-3-5-sonnet": {
     provider: "Anthropic",
     name: "Claude 3.5 Sonnet",
@@ -108,56 +85,35 @@ export const modelDetails: Record<keyof typeof languageModels, ModelInfo> = {
     apiVersion: "claude-3-5-sonnet-20240620",
     capabilities: ["Reasoning", "Code", "Analysis", "Long Context"]
   },
-
-  // Groq (from original scira-mcp-chat)
-  "kimi-k2": {
-    provider: "Groq",
-    name: "Kimi K2",
-    description: "Latest version of Moonshot AI's Kimi K2 with good balance of capabilities.",
-    apiVersion: "kimi-k2-instruct",
-    capabilities: ["Balanced", "Efficient", "Agentic"]
+  "claude-4-sonnet": {
+    provider: "Anthropic",
+    name: "Claude 4 Sonnet",
+    description: "Latest version of Anthropic's Claude 4 Sonnet with thinking mode and strong reasoning capabilities.",
+    apiVersion: "claude-sonnet-4-20250514",
+    capabilities: ["Thinking", "Reasoning", "Efficient", "Agentic"]
   },
-  "qwen3-32b": {
+
+  // Groq Models
+  "qwen-qwq": {
     provider: "Groq",
-    name: "Qwen 3 32B",
-    description: "Latest version of Alibaba's Qwen 32B with strong reasoning and coding capabilities.",
-    apiVersion: "qwen3-32b",
+    name: "Qwen QWQ",
+    description: "Latest version of Alibaba's Qwen QWQ with strong reasoning and coding capabilities.",
+    apiVersion: "qwen-qwq",
     capabilities: ["Reasoning", "Efficient", "Agentic"]
   },
-  "llama4": {
-    provider: "Groq",
-    name: "Llama 4",
-    description: "Latest version of Meta's Llama 4 with good balance of capabilities.",
-    apiVersion: "llama-4-scout-17b-16e-instruct",
-    capabilities: ["Balanced", "Efficient", "Agentic"]
-  },
 
-  // XAI (from original scira-mcp-chat)
+  // XAI Models
   "grok-3-mini": {
     provider: "XAI",
     name: "Grok 3 Mini",
-    description: "Latest version of XAI's Grok 3 Mini with strong reasoning and coding capabilities.",
+    description: "Latest version of XAI's Grok 3 Mini with strong reasoning capabilities.",
     apiVersion: "grok-3-mini-latest",
     capabilities: ["Reasoning", "Efficient", "Agentic"]
-  }
+  },
 };
 
-// Update API keys when localStorage changes (for runtime updates)
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    // Reload the page if any API key changed to refresh the providers
-    if (event.key?.includes('API_KEY')) {
-      window.location.reload();
-    }
-  });
-}
+export type modelID = keyof typeof modelDetails;
 
-export const model = customProvider({
-  languageModels,
-});
-
-export type modelID = keyof typeof languageModels;
-
-export const MODELS = Object.keys(languageModels);
+export const MODELS = Object.keys(modelDetails);
 
 export const defaultModel: modelID = "claude-3-5-sonnet";

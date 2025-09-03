@@ -28,12 +28,12 @@ export const Textarea = ({
     <div className="relative w-full">
       <ShadcnTextarea
         className="resize-none bg-background/50 dark:bg-muted/50 ocean:bg-muted/50 backdrop-blur-sm w-full rounded-2xl pr-12 pt-4 pb-16 border-input focus-visible:ring-ring placeholder:text-muted-foreground"
-        value={input}
+        value={input || ""}
         autoFocus
         placeholder="Send a message..."
         onChange={handleInputChange}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && !isLoading && input.trim()) {
+          if (e.key === "Enter" && !e.shiftKey && !isLoading && input?.trim()) {
             e.preventDefault();
             e.currentTarget.form?.requestSubmit();
           }
@@ -47,7 +47,7 @@ export const Textarea = ({
       <button
         type={isStreaming ? "button" : "submit"}
         onClick={isStreaming ? stop : undefined}
-        disabled={(!isStreaming && !input.trim()) || (isStreaming && status === "submitted")}
+        disabled={(!isStreaming && !input?.trim()) || (isStreaming && status === "submitted")}
         className="absolute right-2 bottom-2 rounded-full p-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-all duration-200"
       >
         {isStreaming ? (
