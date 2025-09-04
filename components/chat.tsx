@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { getUserId } from "@/lib/user-id";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { type Message as DBMessage } from "@/lib/db/schema";
+import { getTextContent } from "@/lib/chat-store";
 import { nanoid } from "nanoid";
 import { useMCP } from "@/lib/context/mcp-context";
 import { useAuth } from "@/lib/context/auth-context";
@@ -73,47 +74,56 @@ export default function Chat() {
     }
   }, [chatId]);
   
-  // Use React Query to fetch chat history
-  // const { data: chatData, isLoading: isLoadingChat, error } = useQuery({
-  //   queryKey: ['chat', chatId, userId] as const,
-  //   queryFn: async ({ queryKey }) => {
-  //     const [_, chatId, userId] = queryKey;
-  //     if (!chatId || !userId) return null;
+  // Use React Query to fetch chat history with full message persistence
+  const { data: chatData, isLoading: isLoadingChat, error } = useQuery({
+    queryKey: ['chat', chatId, userId] as const,
+    queryFn: async ({ queryKey }) => {
+      const [_, chatId, userId] = queryKey;
+      if (!chatId || !userId) return null;
       
-  //     const response = await fetch(`/api/chats/${chatId}`, {
-  //       headers: {
-  //         'x-user-id': userId
-  //       }
-  //     });
+      const response = await fetch(`/api/chats/${chatId}`, {
+        headers: {
+          'x-user-id': userId
+        }
+      });
       
-  //     if (!response.ok) {
-  //       // For 404, return empty chat data instead of throwing
-  //       if (response.status === 404) {
-  //         return { id: chatId, messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  //       }
-  //       throw new Error('Failed to load chat');
-  //     }
+      if (!response.ok) {
+        // For 404, return empty chat data instead of throwing
+        if (response.status === 404) {
+          return { id: chatId, messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        }
+        throw new Error('Failed to load chat');
+      }
       
-  //     return response.json() as Promise<ChatData>;
-  //   },
-  //   enabled: !!chatId && !!userId,
-  //   retry: 1,
-  //   staleTime: 1000 * 60 * 5, // 5 minutes
-  //   refetchOnWindowFocus: false
-  // });
+      return response.json() as Promise<ChatData>;
+    },
+    enabled: !!chatId && !!userId && isUserIdReady,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false
+  });
   
   // Handle query errors
-  // useEffect(() => {
-  //   if (error) {
-  //     console.error('Error loading chat history:', error);
-  //     toast.error('Failed to load chat history');
-  //   }
-  // }, [error]);
+  useEffect(() => {
+    if (error) {
+      console.error('Error loading chat history:', error);
+      toast.error('Failed to load chat history');
+    }
+  }, [error]);
   
-  // Prepare initial messages from query data
+  // Prepare initial messages from query data - convert DB messages to UI format
   const initialMessages = useMemo(() => {
-    return [];
-  }, []);
+    if (!chatData?.messages) return [];
+    
+    // Convert DB messages to UI format, preserving all parts including tool results
+    return chatData.messages.map((dbMessage: DBMessage) => ({
+      id: dbMessage.id,
+      role: dbMessage.role,
+      content: getTextContent(dbMessage), // For backward compatibility
+      parts: dbMessage.parts as any[], // Preserve all message parts including tool calls/results
+      createdAt: dbMessage.createdAt,
+    }));
+  }, [chatData]);
   
   // Use useChat with DefaultChatTransport for proper reasoning support (AI SDK v5 standard)
   const { messages, status, sendMessage, stop, append } = useChat({

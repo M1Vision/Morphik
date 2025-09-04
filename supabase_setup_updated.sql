@@ -289,3 +289,4 @@ CREATE POLICY "Users can upload their own chat files" ON storage.objects
 SELECT 'Updated database setup complete - Compatible with Drizzle schema' AS status;
 
 
+

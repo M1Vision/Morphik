@@ -1,5 +1,5 @@
 import { getLanguageModel, type modelID } from '@/ai/providers';
-import { smoothStream, streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { smoothStream, streamText, convertToModelMessages, type UIMessage, stepCountIs } from 'ai';
 import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { nanoid } from 'nanoid';
 import { initializeMCPClients, type MCPServerConfig } from '@/lib/mcp-client';
@@ -133,6 +133,8 @@ export async function POST(req: Request) {
     `,
     messages: convertToModelMessages(messages),
     tools,
+    toolChoice: 'auto', // Enable automatic tool selection
+    stopWhen: stepCountIs(5), // Allow multi-step tool execution (up to 5 steps)
     providerOptions: {
       anthropic: {
         thinking: { type: 'enabled', budgetTokens: 12000 },

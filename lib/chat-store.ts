@@ -108,6 +108,14 @@ export async function saveChat({
   // Generate a new ID if one wasn't provided
   const chatId = id || nanoid();
 
+  console.log('Saving chat with full message persistence:', {
+    chatId,
+    userId,
+    messageCount: aiMessages?.length,
+    hasToolResults: aiMessages?.some(m => m.parts?.some((p: any) => p.type === 'tool-result')),
+    hasReasoning: aiMessages?.some(m => m.parts?.some((p: any) => p.type === 'reasoning')),
+  });
+
   // Check if title is provided, if not generate one
   let chatTitle = title;
 
@@ -208,6 +216,22 @@ export async function saveChat({
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+  }
+
+  // Save all messages with full parts (including tool results, reasoning, etc.)
+  if (aiMessages && aiMessages.length > 0) {
+    // Convert AI messages to DB format, preserving all parts
+    const dbMessages = convertToDBMessages(aiMessages, chatId);
+    
+    // Delete existing messages for this chat to avoid duplicates
+    await db.delete(messages).where(eq(messages.chatId, chatId));
+    
+    // Insert all messages with their complete parts
+    for (const message of dbMessages) {
+      await db.insert(messages).values(message);
+    }
+    
+    console.log(`Saved ${dbMessages.length} messages with full context for chat ${chatId}`);
   }
 
   return { id: chatId };
