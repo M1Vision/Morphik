@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getChatById, deleteChat } from "@/lib/chat-store";
+import { getChatById, deleteChat } from "@/lib/server/data/chat-operations";
 
 interface Params {
   params: Promise<{

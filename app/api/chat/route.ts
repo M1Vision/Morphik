@@ -4,8 +4,8 @@ import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { nanoid } from 'nanoid';
 import { initializeMCPClients, type MCPServerConfig } from '@/lib/mcp-client';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
-import { saveChat, convertToDBMessages } from '@/lib/chat-store';
-import { db } from '@/lib/db';
+import { saveChat } from '@/lib/server/data/chat-operations';
+import { db } from '@/lib/server/db';
 import { chats } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 

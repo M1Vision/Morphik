@@ -1,6 +1,6 @@
 "use client";
 
-import type { Message as TMessage } from "ai";
+import type { UIMessage as TMessage } from "ai";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { memo, useCallback, useEffect, useState } from "react";
 import equal from "fast-deep-equal";
@@ -127,13 +127,11 @@ const PurePreviewMessage = ({
   message,
   isLatestMessage,
   status,
-  append,
 }: {
   message: TMessage;
   isLoading: boolean;
   status: "error" | "submitted" | "streaming" | "ready";
   isLatestMessage: boolean;
-  append: UseChatHelpers['append'];
 }) => {
   const getMessageText = () => {
     if (!message.parts) return "";
@@ -178,27 +176,10 @@ const PurePreviewMessage = ({
                     </div>
                   </div>
                 );
-              case "tool-invocation":
-                const { toolName, state, args } = part.toolInvocation;
-                const result = 'result' in part.toolInvocation ? part.toolInvocation.result : null;
-                
-                return (
-                  <ToolInvocation
-                    key={`message-part-${i}`}
-                    toolName={toolName}
-                    state={state}
-                    args={args}
-                    result={result}
-                    isLatestMessage={isLatestMessage}
-                    status={status}
-                    append={append}
-                  />
-                );
               case "reasoning":
                 return (
                   <ReasoningMessagePart
                     key={`message-${i}`}
-                    // @ts-expect-error part
                     part={part}
                     isReasoning={
                       (message.parts &&
@@ -209,6 +190,23 @@ const PurePreviewMessage = ({
                   />
                 );
               default:
+                // Handle tool parts (type: 'tool-{toolName}')
+                if (part.type.startsWith('tool-')) {
+                  const toolName = part.type.replace('tool-', '');
+                  const toolPart = part as any; // Cast to access tool properties
+                  
+                  return (
+                    <ToolInvocation
+                      key={`message-part-${i}`}
+                      toolName={toolName}
+                      state={toolPart.state || 'unknown'}
+                      args={toolPart.input || {}}
+                      result={toolPart.output || null}
+                      isLatestMessage={isLatestMessage}
+                      status={status}
+                    />
+                  );
+                }
                 return null;
             }
           })}
@@ -227,9 +225,7 @@ export const Message = memo(PurePreviewMessage, (prevProps, nextProps) => {
   if (prevProps.status !== nextProps.status) return false;
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLatestMessage !== nextProps.isLatestMessage) return false;
-  if (prevProps.append !== nextProps.append) return false;
-  if (prevProps.message.annotations !== nextProps.message.annotations) return false;
-  // if (prevProps.message.id !== nextProps.message.id) return false;
+  if (prevProps.message.id !== nextProps.message.id) return false;
   if (!equal(prevProps.message.parts, nextProps.message.parts)) return false;
   return true;
 });

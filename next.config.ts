@@ -1,22 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Ensures these stay on the server in RSC (moved from experimental in Next.js 15)
+  serverExternalPackages: ['postgres', 'drizzle-orm', 'pg'],
   webpack: (config, { isServer }) => {
-    // Fix for postgres and other Node.js modules in client-side code
+    // Webpack fallbacks (for non-Turbopack builds)
     if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
+      Object.assign(config.resolve.fallback ??= {}, {
         fs: false,
         net: false,
         tls: false,
         perf_hooks: false,
         child_process: false,
-      };
+        postgres: false,
+        pg: false,
+      });
     }
     return config;
-  },
-  turbopack: {
-    root: process.cwd(),
   },
 };
 

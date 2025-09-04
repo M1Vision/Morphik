@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getChats } from "@/lib/chat-store";
+import { getChats } from "@/lib/server/data/chat-operations";
 
 export async function GET(request: Request) {
   try {

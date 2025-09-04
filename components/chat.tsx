@@ -12,19 +12,10 @@ import { useRouter, useParams } from "next/navigation";
 import { getUserId } from "@/lib/user-id";
 import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { type Message as DBMessage } from "@/lib/db/schema";
-import { getTextContent } from "@/lib/chat-store";
+import { type DBMessage, type ChatData, getTextContent } from "@/lib/types";
 import { nanoid } from "nanoid";
 import { useMCP } from "@/lib/context/mcp-context";
 import { useAuth } from "@/lib/context/auth-context";
-
-// Type for chat data from DB
-interface ChatData {
-  id: string;
-  messages: DBMessage[];
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function Chat() {
   const router = useRouter();
@@ -118,7 +109,7 @@ export default function Chat() {
     // Convert DB messages to UI format, preserving all parts including tool results
     return chatData.messages.map((dbMessage: DBMessage) => ({
       id: dbMessage.id,
-      role: dbMessage.role,
+      role: dbMessage.role as "user" | "assistant" | "system", // Type assertion for UIMessage compatibility
       content: getTextContent(dbMessage), // For backward compatibility
       parts: dbMessage.parts as any[], // Preserve all message parts including tool calls/results
       createdAt: dbMessage.createdAt,
@@ -126,9 +117,9 @@ export default function Chat() {
   }, [chatData]);
   
   // Use useChat with DefaultChatTransport for proper reasoning support (AI SDK v5 standard)
-  const { messages, status, sendMessage, stop, append } = useChat({
+  const { messages, status, sendMessage, stop } = useChat({
     id: chatId || generatedChatId,
-    initialMessages,
+    messages: initialMessages,
     transport: new DefaultChatTransport({
       api: '/api/chat',
       prepareSendMessagesRequest: ({ messages }) => ({
@@ -156,12 +147,35 @@ export default function Chat() {
         { position: "top-center", richColors: true },
       );
     },
-    // Only initialize when authentication is complete and userId is ready
-    enabled: !loading && isUserIdReady && !!userId,
   });
 
   // Input state for the new sendMessage pattern
   const [input, setInput] = useState("");
+  
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
+  // Custom submit handler using the official sendMessage pattern
+  const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!input?.trim()) {
+      return; // Don't submit empty messages
+    }
+    
+    const messageText = input.trim();
+    setInput(""); // Clear input immediately
+    
+    // Use the official sendMessage from useChat
+    sendMessage({ text: messageText });
+    
+    // Redirect to chat page if this was a new conversation
+    if (!chatId && generatedChatId) {
+      router.push(`/chat/${generatedChatId}`);
+    }
+  }, [input, sendMessage, chatId, generatedChatId, router]);
   
   // Debug logging
   console.log('useChat values:', { 
@@ -206,8 +220,10 @@ export default function Chat() {
   console.log('useChat enabled condition:', !loading && isUserIdReady && !!userId);
   console.log('userId value:', userId);
   console.log('auth user ID:', user?.id);
+
+  const isLoading = status === "streaming" || status === "submitted";
   
-  // Early return if authentication is still loading
+  // Early returns after all hooks are defined
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -216,7 +232,6 @@ export default function Chat() {
     );
   }
   
-  // Early return if no authenticated user (shouldn't happen due to AuthGuard, but safety check)
   if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -224,35 +239,7 @@ export default function Chat() {
       </div>
     );
   }
-    
-  // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
 
-  // Custom submit handler using the official sendMessage pattern
-  const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (!input?.trim()) {
-      return; // Don't submit empty messages
-    }
-    
-    const messageText = input.trim();
-    setInput(""); // Clear input immediately
-    
-    // Use the official sendMessage from useChat
-    sendMessage({ text: messageText });
-    
-    // Redirect to chat page if this was a new conversation
-    if (!chatId && generatedChatId) {
-      router.push(`/chat/${generatedChatId}`);
-    }
-  }, [input, sendMessage, chatId, generatedChatId, router]);
-
-  const isLoading = status === "streaming" || status === "submitted";
-
-  // Show loading state while userId is being initialized
   if (!isUserIdReady) {
     return (
       <div className="h-dvh flex flex-col justify-center items-center w-full max-w-3xl mx-auto px-4 sm:px-6 md:py-4">
@@ -284,7 +271,7 @@ export default function Chat() {
       ) : (
         <>
           <div className="flex-1 overflow-y-auto min-h-0 pb-2">
-            <Messages messages={messages} isLoading={isLoading} status={status} append={append} />
+            <Messages messages={messages} isLoading={isLoading} status={status} />
           </div>
           <form
             onSubmit={handleFormSubmit}

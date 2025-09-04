@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { type Chat } from '@/lib/db/schema';
 import { toast } from 'sonner';
+
+// Client-safe Chat type (avoiding server-only schema import)
+type Chat = {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export function useChats(userId: string) {
   const queryClient = useQueryClient();

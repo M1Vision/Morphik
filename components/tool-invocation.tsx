@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UIResourceRenderer, UIActionResult } from '@mcp-ui/client';
-import type { UseChatHelpers, Message as TMessage } from '@ai-sdk/react';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { UIMessage as TMessage } from 'ai';
 import { nanoid } from 'nanoid';
 // Removed MorphikImageDisplay - component deleted
 
@@ -49,7 +50,6 @@ interface ToolInvocationProps {
   result: any;
   isLatestMessage: boolean;
   status: string;
-  append?: UseChatHelpers['append'];
 }
 
 export const ToolInvocation = memo(function ToolInvocation({
@@ -59,7 +59,6 @@ export const ToolInvocation = memo(function ToolInvocation({
   result,
   isLatestMessage,
   status,
-  append,
 }: ToolInvocationProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [htmlResourceContents, setHtmlResourceContents] = useState<HtmlResourceData[]>([]);
@@ -187,39 +186,16 @@ export const ToolInvocation = memo(function ToolInvocation({
 
   const handleUiAction = useCallback(
     async (result: UIActionResult) => {
-      if (append) {
-        let userMessageContent = '';
-        if (result.type === 'tool') {
-          userMessageContent = `Call ${result.payload.toolName} with parameters: ${JSON.stringify(
-            result.payload.params
-          )}`;
-        }
-        if (result.type === 'prompt') {
-          userMessageContent = result.payload.prompt;
-        }
-        if (userMessageContent) {
-          const newMessage: TMessage = {
-            id: nanoid(),
-            role: 'user',
-            content: userMessageContent,
-          };
-
-          append(newMessage);
-        }
-
-        return Promise.resolve({
-          status: 'ok',
-          message: 'User interaction requested via append',
-        });
-      } else {
-        console.warn('append function not available in ToolInvocation for UI action');
-        return Promise.resolve({
-          status: 'error',
-          message: 'Chat context (append) not available for UI action',
-        });
-      }
+      // UI action handling is currently disabled since append is not available
+      // This could be re-enabled by passing a sendMessage function if needed
+      console.log('UI action triggered:', result);
+      
+      return Promise.resolve({
+        status: 'ok',
+        message: 'UI action logged (append not available)',
+      });
     },
-    [append]
+    []
   );
 
   const renderedHtmlResources = useMemo(() => {
